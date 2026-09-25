@@ -1,0 +1,14 @@
+Sprint 30 - Etapa 3
+
+Python 3.12 / Linux
+pytest -q: 236 passed, 1 warning in 56.49s
+Aviso: Starlette recomenda httpx2 no TestClient.
+ruff check app tests tools alembic: All checks passed!
+npm ci + npm run build: TypeScript e Vite aprovados.
+Aviso Vite: bundle JavaScript maior que 500 kB.
+
+7 testes novos cobrem revogacao e auditoria, preservacao de outras sessoes,
+idempotencia, restricoes de papeis, isolamento de empresas e de usuarios,
+sessao atual, expiracao, acesso anonimo e bootstrap.
+
+Docker/PostgreSQL e interacao visual no navegador nao foram executados aqui.

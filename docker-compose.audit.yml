@@ -1,0 +1,22 @@
+# Auditing needs Internet access; pytest remains isolated with network_mode: none.
+services:
+  audit:
+    build:
+      context: .
+      dockerfile: Dockerfile.business.api
+      target: tests
+    entrypoint: ["python", "-m", "pip_audit"]
+    command: ["-r", "requirements.txt", "--no-deps", "--disable-pip"]
+    networks:
+      - audit
+  frontend-audit:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.business.web
+      target: build
+    entrypoint: ["npm"]
+    command: ["audit"]
+    networks:
+      - audit
+networks:
+  audit: {}

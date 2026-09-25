@@ -1,0 +1,98 @@
+services:
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "noeviction"]
+    networks:
+      - rate_limit
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nexyra_business}
+      POSTGRES_USER: ${POSTGRES_USER:-nexyra}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no .env.docker}
+    volumes:
+      - nexyra_business_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nexyra} -d ${POSTGRES_DB:-nexyra_business}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.business.api
+      target: production
+    restart: unless-stopped
+    environment:
+      APP_NAME: Nexyra CRM Business
+      APP_VERSION: 1.1.0-business.2
+      ENVIRONMENT: development
+      DEPLOYMENT_MODE: business
+      NEXYRA_DB_HOST: db
+      NEXYRA_DB_PORT: "5432"
+      NEXYRA_DB_USER: ${POSTGRES_USER:-nexyra}
+      NEXYRA_DB_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no .env.docker}
+      NEXYRA_DB_NAME: ${POSTGRES_DB:-nexyra_business}
+      DATABASE_REQUIRE_POSTGRESQL: "true"
+      DATABASE_POOL_SIZE: "10"
+      DATABASE_MAX_OVERFLOW: "20"
+      DATABASE_POOL_TIMEOUT_SECONDS: "30"
+      DATABASE_POOL_RECYCLE_SECONDS: "1800"
+      DATABASE_CONNECT_TIMEOUT_SECONDS: "10"
+      CORS_ORIGINS: http://127.0.0.1:${NEXYRA_WEB_PORT:-8080},http://localhost:${NEXYRA_WEB_PORT:-8080}
+      SECURITY_ALLOWED_HOSTS: api,127.0.0.1,localhost,testserver
+      SECURITY_RATE_LIMIT_ENABLED: "true"
+      SECURITY_RATE_LIMIT_BACKEND: redis
+      SECURITY_RATE_LIMIT_REDIS_URL: ${SECURITY_RATE_LIMIT_REDIS_URL:-redis://redis:6379/0}
+      SECURITY_RATE_LIMIT_REDIS_PREFIX: ${SECURITY_RATE_LIMIT_REDIS_PREFIX:-nexyra:rate-limit}
+      FORWARDED_ALLOW_IPS: ${NEXYRA_TRUSTED_PROXY_IPS:-127.0.0.1}
+      INTEGRATION_SECRET_MASTER_KEY: ${INTEGRATION_SECRET_MASTER_KEY:-dev-only-business-change-me}
+      ATLAS_INTEGRATION_TOKEN: ${ATLAS_INTEGRATION_TOKEN:-dev-business-atlas-change-me}
+    command: >
+      sh -c "python -m alembic upgrade head &&
+             python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers ${NEXYRA_API_WORKERS:-2}"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health/ready', timeout=4)"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 20s
+    ports:
+      - "127.0.0.1:${NEXYRA_API_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - default
+      - rate_limit
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.business.web
+      args:
+        VITE_API_BASE_URL: /api/v1
+    restart: unless-stopped
+    ports:
+      - "${NEXYRA_WEB_PORT:-8080}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  nexyra_business_postgres:
+
+networks:
+  rate_limit:
+    internal: true

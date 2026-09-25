@@ -1,0 +1,17 @@
+Sprint 30 - Etapa 5
+
+Python 3.12 / Linux
+pytest -q: 270 passed, 1 warning in 86.71s
+13 testes novos passaram. Aviso de depreciação do TestClient/Starlette.
+ruff check app tests tools alembic: All checks passed!
+npm ci + npm run build: TypeScript e Vite aprovados.
+Aviso Vite: bundle JavaScript maior que 500 kB.
+
+Cobertura nova: redefinição com troca obrigatória, revogação de 26 sessões,
+invalidação de recuperação pendente, senha antiga recusada, hash da nova senha,
+resposta sem cache, auditoria sem segredo, restrições de perfis e empresas,
+confirmação de senha e bloqueio por tentativas, conta sem credencial,
+rollback em falha da auditoria e bloqueio no bootstrap.
+
+Docker Desktop, PostgreSQL, concorrência real e interação visual no navegador
+não foram executados neste ambiente.

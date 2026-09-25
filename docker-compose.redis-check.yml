@@ -1,0 +1,25 @@
+# Separate project: no production volumes, ports, environment file or networks.
+services:
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1s
+      timeout: 2s
+      retries: 30
+  check:
+    build:
+      context: .
+      dockerfile: Dockerfile.business.api
+      target: tests
+    environment:
+      RATE_LIMIT_TEST_REDIS_URL: redis://redis:6379/0
+    entrypoint: ["python", "-m", "pytest"]
+    command: ["-q", "tests/test_redis_rate_limit.py"]
+    depends_on:
+      redis:
+        condition: service_healthy
+networks:
+  default:
+    internal: true

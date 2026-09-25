@@ -1,0 +1,9 @@
+services:
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.business.api
+      target: tests
+    network_mode: none
+    entrypoint: ["python", "-m"]
+    command: ["pytest", "-q"]
